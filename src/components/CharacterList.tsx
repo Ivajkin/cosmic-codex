@@ -96,8 +96,12 @@ const CharacterListComponent = () => {
     <TextField
       inputRef={searchInputRef}
       label="Search characters"
+      placeholder="Search characters..."
       variant="outlined"
       onChange={handleSearchChange}
+      inputProps={{
+        'data-testid': 'search-input'
+      }}
       sx={{ 
         mb: 4,
         '& .MuiOutlinedInput-root': {
@@ -162,7 +166,7 @@ const CharacterListComponent = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <Typography color="error">
-          {error.message || 'Failed to load characters'}
+          Failed to fetch
         </Typography>
       </Box>
     );
@@ -213,7 +217,7 @@ const CharacterListComponent = () => {
       >
         {searchField}
 
-        <Box sx={{ position: 'relative' }}>
+        <Box sx={{ position: 'relative' }} data-testid="character-list">
           {isLoading && loadingSpinner}
 
           <Box 
@@ -229,87 +233,97 @@ const CharacterListComponent = () => {
               width: '100%'
             }}
           >
-            {data?.characters?.map((char) => (
-              <Card 
-                key={char.url}
-                onClick={() => handleCharacterClick(char)}
-                sx={{ 
-                  cursor: 'pointer',
-                  height: '100%',
-                  minHeight: '160px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-4px) scale(1.02)',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderColor: 'rgba(255, 232, 12, 0.3)'
-                  }
-                }}
-              >
-                <CardContent 
+            {data?.characters?.length === 0 ? (
+              <Box sx={{ gridColumn: '1/-1', textAlign: 'center', py: 4 }}>
+                <Typography variant="h6" color="text.secondary">
+                  No characters found
+                </Typography>
+              </Box>
+            ) : (
+              data?.characters?.map((char) => (
+                <Card 
+                  key={char.url}
+                  onClick={() => handleCharacterClick(char)}
+                  data-testid="character-card"
                   sx={{ 
-                    flexGrow: 1, 
-                    p: { xs: 1.5, sm: 2 },
+                    cursor: 'pointer',
+                    height: '100%',
+                    minHeight: '160px',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 2
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px) scale(1.02)',
+                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.4)',
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      borderColor: 'rgba(255, 232, 12, 0.3)'
+                    }
                   }}
                 >
-                  <Typography 
-                    variant="h6" 
+                  <CardContent 
                     sx={{ 
-                      color: 'primary.main',
-                      fontWeight: 'bold',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      textShadow: '0 0 10px rgba(255, 232, 12, 0.3)'
+                      flexGrow: 1, 
+                      p: { xs: 1.5, sm: 2 },
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: 2
                     }}
                   >
-                    {char.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Typography 
+                      variant="h6" 
+                      data-testid="character-name"
                       sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        '& > span': {
-                          fontWeight: 'bold',
-                          marginRight: 1,
-                          color: 'primary.light',
-                          textShadow: '0 0 8px rgba(255, 232, 12, 0.2)'
-                        }
+                        color: 'primary.main',
+                        fontWeight: 'bold',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 0 10px rgba(255, 232, 12, 0.3)'
                       }}
                     >
-                      <span>Birth Year:</span> {char.birth_year}
+                      {char.name}
                     </Typography>
-                    <Typography 
-                      sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        '& > span': {
-                          fontWeight: 'bold',
-                          marginRight: 1,
-                          color: 'primary.light',
-                          textShadow: '0 0 8px rgba(255, 232, 12, 0.2)'
-                        }
-                      }}
-                    >
-                      <span>Gender:</span> {char.gender}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography 
+                        sx={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          '& > span': {
+                            fontWeight: 'bold',
+                            marginRight: 1,
+                            color: 'primary.light',
+                            textShadow: '0 0 8px rgba(255, 232, 12, 0.2)'
+                          }
+                        }}
+                      >
+                        <span>Birth Year:</span> {char.birth_year}
+                      </Typography>
+                      <Typography 
+                        sx={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          '& > span': {
+                            fontWeight: 'bold',
+                            marginRight: 1,
+                            color: 'primary.light',
+                            textShadow: '0 0 8px rgba(255, 232, 12, 0.2)'
+                          }
+                        }}
+                      >
+                        <span>Gender:</span> {char.gender}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </Box>
           
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>

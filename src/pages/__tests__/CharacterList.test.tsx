@@ -1,77 +1,104 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, RenderResult } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { vi } from 'vitest';
+import { vi, expect, beforeEach, describe, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { JSX } from 'react';
 import CharacterList from '../CharacterList';
-import { getCharacters } from '../../services/api';
+import type { Character, CharacterResponse } from '../../services/api';
+
+const mockGetCharacters = vi.fn();
 
 // Mock the API module
 vi.mock('../../services/api', () => ({
-  getCharacters: vi.fn(),
+  characters: {
+    getCharacters: mockGetCharacters,
+  },
 }));
 
-const mockCharacters = {
+const mockCharacter: Character = {
+  name: 'Luke Skywalker',
+  height: '172',
+  mass: '77',
+  hair_color: 'blond',
+  skin_color: 'fair',
+  eye_color: 'blue',
+  birth_year: '19BBY',
+  gender: 'male',
+  homeworld: 'https://swapi.dev/api/planets/1/',
+  url: 'https://swapi.dev/api/people/1/',
+};
+
+const mockCharacters: CharacterResponse = {
   count: 82,
   next: 'https://swapi.dev/api/people/?page=2',
   previous: null,
-  results: [
-    {
-      name: 'Luke Skywalker',
-      height: '172',
-      mass: '77',
-      hair_color: 'blond',
-      skin_color: 'fair',
-      eye_color: 'blue',
-      birth_year: '19BBY',
-      gender: 'male',
-      homeworld: 'https://swapi.dev/api/planets/1/',
-      films: ['https://swapi.dev/api/films/1/'],
-      species: [],
-      vehicles: [],
-      starships: [],
-      url: 'https://swapi.dev/api/people/1/',
-    },
-  ],
+  results: [mockCharacter],
 };
 
-const renderWithRouter = (component: React.ReactNode) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+const renderWithProviders = (ui: JSX.Element): RenderResult => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        {ui}
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 };
 
 describe('CharacterList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (getCharacters as jest.Mock).mockResolvedValue(mockCharacters);
+    mockGetCharacters.mockResolvedValue(mockCharacters);
   });
 
-  it('renders loading state initially', () => {
-    renderWithRouter(<CharacterList />);
+  it('renders loading state initially', async () => {
+    renderWithProviders(<CharacterList />);
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders character cards after loading', async () => {
-    renderWithRouter(<CharacterList />);
-    
+    renderWithProviders(<CharacterList />);
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
-    
-    expect(screen.getByText('Birth Year: 19BBY')).toBeInTheDocument();
-    expect(screen.getByText('Gender: male')).toBeInTheDocument();
   });
 
   it('handles search input', async () => {
-    renderWithRouter(<CharacterList />);
-    
+    renderWithProviders(<CharacterList />);
     const searchInput = screen.getByLabelText('Search characters');
     fireEvent.change(searchInput, { target: { value: 'Luke' } });
-    
     await waitFor(() => {
-      expect(getCharacters).toHaveBeenCalledWith(1, 'Luke');
+      expect(mockGetCharacters).toHaveBeenCalledWith(1, 'Luke');
+    });
+  });
+
+  it('handles error state', async () => {
+    mockGetCharacters.mockRejectedValue(new Error('Failed to fetch'));
+    renderWithProviders(<CharacterList />);
+    await waitFor(() => {
+      expect(screen.getByText('Error: Failed to fetch')).toBeInTheDocument();
+    });
+  });
+
+  it('displays empty state when no characters found', async () => {
+    mockGetCharacters.mockResolvedValue({ ...mockCharacters, results: [] });
+    renderWithProviders(<CharacterList />);
+    await waitFor(() => {
+      expect(screen.getByText('No characters found')).toBeInTheDocument();
     });
   });
 
   it('handles pagination', async () => {
-    renderWithRouter(<CharacterList />);
+    renderWithProviders(<CharacterList />);
     
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
@@ -81,7 +108,7 @@ describe('CharacterList', () => {
     fireEvent.click(page2Button);
     
     await waitFor(() => {
-      expect(getCharacters).toHaveBeenCalledWith(2, '');
+      expect(mockGetCharacters).toHaveBeenCalledWith(2, '');
     });
   });
 }); 

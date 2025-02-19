@@ -41,14 +41,14 @@ describe('StarfieldBackground', () => {
 
   it('renders canvas element', () => {
     render(<StarfieldBackground />);
-    const canvas = screen.getByRole('img');
+    const canvas = screen.getByTestId('starfield-canvas');
     expect(canvas).toBeInTheDocument();
     expect(canvas.tagName.toLowerCase()).toBe('canvas');
   });
 
   it('sets up canvas with correct styles', () => {
     render(<StarfieldBackground />);
-    const canvas = screen.getByRole('img');
+    const canvas = screen.getByTestId('starfield-canvas');
     
     expect(canvas).toHaveStyle({
       position: 'fixed',

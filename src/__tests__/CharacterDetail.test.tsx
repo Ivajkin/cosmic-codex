@@ -18,7 +18,8 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../services/api', () => ({
   default: {
     characters: {
-      getCharacter: vi.fn()
+      getCharacter: vi.fn(),
+      updateCharacter: vi.fn()
     }
   }
 }));
@@ -91,7 +92,9 @@ describe('CharacterDetail', () => {
   });
 
   it('saves edited character details', async () => {
+    const updatedCharacter = { ...mockCharacter, height: '175' };
     vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
+    vi.mocked(api.characters.updateCharacter).mockResolvedValue(updatedCharacter);
     
     await act(async () => {
       renderWithProviders(<CharacterDetail />);
@@ -117,10 +120,15 @@ describe('CharacterDetail', () => {
       fireEvent.click(screen.getByRole('button', { name: /save/i }));
     });
 
-    // Verify changes
+    // Wait for the save operation to complete and verify changes
     await waitFor(() => {
       expect(screen.getByText('175')).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
+
+    // Verify that updateCharacter was called with the correct data
+    expect(api.characters.updateCharacter).toHaveBeenCalledWith('1', expect.objectContaining({
+      height: '175'
+    }));
   });
 
   it('cancels editing without saving changes', async () => {

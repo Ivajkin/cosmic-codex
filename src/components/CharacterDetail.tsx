@@ -13,7 +13,7 @@ import {
   Box
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import api, { Character } from '../services/api';
+import api, { Character, LocalStorageService } from '../services/api';
 
 interface ValidationErrors {
   height?: string;
@@ -37,8 +37,15 @@ const CharacterDetail = () => {
       if (!id) return;
       try {
         setLoading(true);
-        const data = await api.characters.getCharacter(id);
-        setCharacter(data);
+        // First try to get from local storage
+        const localChar = LocalStorageService.getCharacter(id);
+        if (localChar) {
+          setCharacter(localChar);
+        } else {
+          // If not in local storage, fetch from API
+          const data = await api.characters.getCharacter(id);
+          setCharacter(data);
+        }
       } catch (error) {
         setError('Failed to load character details.');
       } finally {
@@ -89,7 +96,7 @@ const CharacterDetail = () => {
     setIsEditing(!isEditing);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (editedChar && id) {
       // Validate all fields
       const errors: ValidationErrors = {};
@@ -111,12 +118,13 @@ const CharacterDetail = () => {
       }
 
       try {
-        await api.characters.updateCharacter(id, editedChar);
+        // Save to local storage
+        LocalStorageService.saveCharacter(id, editedChar);
         setCharacter(editedChar);
         setIsEditing(false);
         setSaveError(null);
       } catch (error) {
-        setSaveError('Failed to save changes');
+        setSaveError('Failed to save changes locally');
       }
     }
   };

@@ -61,13 +61,38 @@ test.describe('Character List Page', () => {
             }]
           })
         });
+      } else {
+        // Default response for initial load
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            count: 82,
+            next: 'https://swapi.dev/api/people/?page=2',
+            previous: null,
+            results: [{
+              name: 'Luke Skywalker',
+              height: '172',
+              mass: '77',
+              birth_year: '19BBY',
+              gender: 'male',
+              url: 'https://swapi.dev/api/people/1/'
+            }]
+          })
+        });
       }
     });
 
     await page.goto('/');
     
+    // Wait for the character list to be visible first
+    await page.waitForSelector('[data-testid="character-list"]', { timeout: 5000 });
+    
+    // Then wait for search input to be visible
+    await page.waitForSelector('[data-testid="search-input"]', { timeout: 3000 });
+    
     // Type into search input
-    await page.getByRole('textbox', { name: 'Search characters' }).fill('Luke');
+    await page.getByTestId('search-input').fill('Luke');
     
     // Wait for search results
     await page.waitForSelector('[data-testid="character-list"]');

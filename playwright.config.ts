@@ -50,12 +50,12 @@ export default defineConfig({
     command: 'pnpm dev',
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
-    timeout: process.env.CI ? 120000 : 15000,
+    timeout: process.env.CI ? 120000 : 5000,
     stdout: 'pipe',
     stderr: 'pipe',
   },
   expect: {
-    timeout: process.env.CI ? 15000 : 2000,
+    timeout: process.env.CI ? 15000 : 1000,
   },
-  globalTimeout: process.env.CI ? 600000 : 120000,
+  globalTimeout: process.env.CI ? 600000 : 60000,
 }); 

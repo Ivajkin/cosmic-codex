@@ -82,6 +82,7 @@ const StarfieldBackground = () => {
   return (
     <canvas
       ref={canvasRef}
+      data-testid="starfield-canvas"
       style={{
         position: 'fixed',
         top: 0,
