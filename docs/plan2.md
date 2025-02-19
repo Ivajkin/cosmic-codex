@@ -1,8 +1,8 @@
 Test task for React engineer 
  
 Используя Star Wars API (https://swapi.dev/) 
-в качестве источника данных, 
-реализовать SPA приложение React и Typescript, 
+в качестве источника данных, [done]
+реализовать SPA приложение React и Typescript, [done]
 состоящее из двух страниц. 
 На главной странице отобразить список или карточки персонажей, 
 к списку добавить возможность пагинации и поиска с использованием API. 
@@ -18,4 +18,4 @@ Test task for React engineer
 + Тесты
 
 + each file check - is production ready?
-+ deploy temporary to vercel
++ deploy temporary to vercel [done]
