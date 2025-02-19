@@ -135,29 +135,44 @@ const createApiInstance = (): AxiosInstance => {
 const api = createApiInstance();
 
 // API methods
-export const getCharacters = async (page = 1, search = ''): Promise<CharacterResponse> => {
-  try {
-    logger.info('getCharacters called', { page, search });
-    const response: AxiosResponse<CharacterResponse> = await api.get('/people/', {
-      params: { page, search },
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('Error in getCharacters', { error });
-    throw error;
+const characters = {
+  getCharacters: async (page = 1, search = ''): Promise<CharacterResponse> => {
+    try {
+      logger.info('getCharacters called', { page, search });
+      const response: AxiosResponse<CharacterResponse> = await api.get('/people/', {
+        params: { page, search },
+      });
+      return response.data;
+    } catch (error) {
+      logger.error('Error in getCharacters', { error });
+      throw error;
+    }
+  },
+
+  getCharacter: async (id: string): Promise<Character> => {
+    try {
+      logger.info('getCharacter called', { id });
+      const response: AxiosResponse<Character> = await api.get(`/people/${id}`);
+      return response.data;
+    } catch (error) {
+      logger.error('Error in getCharacter', { error });
+      throw error;
+    }
+  },
+
+  updateCharacter: async (id: string, character: Character): Promise<Character> => {
+    try {
+      logger.info('updateCharacter called', { id, character });
+      const response: AxiosResponse<Character> = await api.put(`/people/${id}`, character);
+      return response.data;
+    } catch (error) {
+      logger.error('Error in updateCharacter', { error });
+      throw error;
+    }
   }
 };
 
-export const getCharacter = async (id: string): Promise<Character> => {
-  try {
-    logger.info('getCharacter called', { id });
-    const response: AxiosResponse<Character> = await api.get(`/people/${id}`);
-    return response.data;
-  } catch (error) {
-    logger.error('Error in getCharacter', { error });
-    throw error;
-  }
-};
+export default { characters };
 
 // Local storage service
 export const LocalStorageService = {
@@ -198,9 +213,4 @@ export const LocalStorageService = {
       return {};
     }
   },
-};
-
-export default {
-  characters: { getCharacters, getCharacter },
-  localStorage: LocalStorageService,
 }; 

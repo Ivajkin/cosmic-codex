@@ -13,7 +13,7 @@ import {
   Paper
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import api, { type Character, type CharacterResponse } from '../services/api';
+import api, { type Character } from '../services/api';
 import { debounce } from 'lodash';
 
 interface QueryResult {
@@ -49,33 +49,29 @@ const CharacterListComponent = () => {
   }, []);
 
   // React Query hook for fetching characters
-  const { data, isLoading, isError, error } = useQuery({
+  const { data = { characters: [], totalPages: 0 }, isLoading, isError, error } = useQuery<QueryResult, Error>({
     queryKey: ['characters', search, page],
-    queryFn: async () => {
+    queryFn: async (): Promise<QueryResult> => {
       const response = await api.characters.getCharacters(page, search);
-      const result: QueryResult = {
+      return {
         characters: response.results,
         totalPages: Math.ceil(response.count / 10)
       };
-      return result;
-    },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    placeholderData: (previousData) => previousData as QueryResult | undefined,
+    }
   });
 
   // Prefetch next page
   useEffect(() => {
     if (data?.totalPages && page < data.totalPages) {
       const nextPage = page + 1;
-      queryClient.prefetchQuery({
+      queryClient.prefetchQuery<QueryResult, Error>({
         queryKey: ['characters', search, nextPage],
-        queryFn: async () => {
+        queryFn: async (): Promise<QueryResult> => {
           const response = await api.characters.getCharacters(nextPage, search);
-          const result: QueryResult = {
+          return {
             characters: response.results,
             totalPages: Math.ceil(response.count / 10)
           };
-          return result;
         }
       });
     }

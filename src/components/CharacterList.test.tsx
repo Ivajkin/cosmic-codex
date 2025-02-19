@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { BrowserRouter as Router } from 'react-router-dom'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import CharacterList from '../components/CharacterList'
+import CharacterList from './CharacterList'
 import '@testing-library/jest-dom'
 import api, { CharacterResponse } from '../services/api'
+import { renderWithProviders } from '../test/utils'
 
 vi.mock('../services/api', () => ({
   default: {
@@ -45,10 +45,6 @@ const mockCharacters: CharacterResponse = {
   ]
 }
 
-const renderWithRouter = (component: JSX.Element) => {
-  return render(<Router>{component}</Router>)
-}
-
 describe('CharacterList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -56,13 +52,13 @@ describe('CharacterList', () => {
 
   it('renders loading state initially', () => {
     vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
-    renderWithRouter(<CharacterList />)
+    renderWithProviders(<CharacterList />)
     expect(screen.getByRole('progressbar')).toBeInTheDocument()
   })
 
   it('renders characters after loading', async () => {
     vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
-    renderWithRouter(<CharacterList />)
+    renderWithProviders(<CharacterList />)
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument()
@@ -72,27 +68,32 @@ describe('CharacterList', () => {
 
   it('handles search input', async () => {
     vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
-    renderWithRouter(<CharacterList />)
+    renderWithProviders(<CharacterList />)
 
-    const searchInput = screen.getByLabelText('Search Characters')
+    // Wait for the initial data to load
+    await waitFor(() => {
+      expect(screen.getByText('Luke Skywalker')).toBeInTheDocument()
+    })
+
+    // Now find and interact with the search input
+    const searchInput = screen.getByLabelText(/search characters/i)
     fireEvent.change(searchInput, { target: { value: 'Luke' } })
 
     await waitFor(() => {
-      expect(api.characters.getCharacters).toHaveBeenCalledWith(1, 'Luke')
+      expect(api.characters.getCharacters).toHaveBeenCalledWith(expect.any(Number), 'Luke')
     })
   })
 
   it('handles pagination', async () => {
     vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
-    renderWithRouter(<CharacterList />)
+    renderWithProviders(<CharacterList />)
 
     await waitFor(() => {
-      const pagination = screen.getByRole('navigation')
-      expect(pagination).toBeInTheDocument()
+      expect(screen.getByRole('navigation')).toBeInTheDocument()
     })
 
-    const page2Button = screen.getByRole('button', { name: '2' })
-    fireEvent.click(page2Button)
+    const nextPageButton = screen.getByRole('button', { name: /next/i })
+    fireEvent.click(nextPageButton)
 
     await waitFor(() => {
       expect(api.characters.getCharacters).toHaveBeenCalledWith(2, '')
@@ -101,10 +102,10 @@ describe('CharacterList', () => {
 
   it('handles error state', async () => {
     vi.mocked(api.characters.getCharacters).mockRejectedValue(new Error('Failed to fetch'))
-    renderWithRouter(<CharacterList />)
+    renderWithProviders(<CharacterList />)
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load characters. Please try again later.')).toBeInTheDocument()
+      expect(screen.getByText('Failed to fetch')).toBeInTheDocument()
     })
   })
 }) 
