@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'html' : 'line',
   maxFailures: process.env.CI ? 5 : 1,
   use: {
-    baseURL: 'http://localhost:5174',
+    baseURL: 'http://localhost:5173',
     trace: process.env.CI ? 'on-first-retry' : 'off',
     screenshot: process.env.CI ? 'only-on-failure' : 'off',
     actionTimeout: process.env.CI ? 15000 : 3000,
@@ -17,38 +17,22 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
   },
   projects: [
-    ...(!process.env.CI ? [{
+    {
       name: 'chromium',
-      use: { 
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          args: [
-            '--disable-gpu',
-            '--disable-dev-shm-usage',
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--js-flags="--max-old-space-size=32768"'
-          ]
-        }
-      },
-    }] : [
-      {
-        name: 'chromium',
-        use: { ...devices['Desktop Chrome'] },
-      },
-      {
-        name: 'firefox',
-        use: { ...devices['Desktop Firefox'] },
-      },
-      {
-        name: 'webkit',
-        use: { ...devices['Desktop Safari'] },
-      },
-    ]),
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:5174',
+    url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: process.env.CI ? 120000 : 5000,
     stdout: 'pipe',

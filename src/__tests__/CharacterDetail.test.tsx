@@ -3,6 +3,7 @@ import { screen, waitFor, fireEvent, act } from '@testing-library/react';
 import CharacterDetail from '../components/CharacterDetail';
 import { renderWithProviders } from '../test/utils';
 import api from '../services/api';
+import { LocalStorageService } from '../services/localStorage';
 
 // Mock react-router-dom hooks
 vi.mock('react-router-dom', async () => {
@@ -14,13 +15,20 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock the API
+// Mock the API and LocalStorageService
 vi.mock('../services/api', () => ({
   default: {
     characters: {
       getCharacter: vi.fn(),
       updateCharacter: vi.fn()
     }
+  }
+}));
+
+vi.mock('../services/localStorage', () => ({
+  LocalStorageService: {
+    getCharacter: vi.fn(),
+    saveCharacter: vi.fn()
   }
 }));
 
@@ -38,7 +46,13 @@ const mockCharacter = {
 };
 
 describe('CharacterDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(LocalStorageService.getCharacter).mockReturnValue(null);
+  });
+
   it('renders loading state initially', () => {
+    vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
     renderWithProviders(<CharacterDetail />);
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -46,26 +60,22 @@ describe('CharacterDetail', () => {
   it('renders character details after loading', async () => {
     vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
     
-    await act(async () => {
-      renderWithProviders(<CharacterDetail />);
-    });
+    renderWithProviders(<CharacterDetail />);
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
 
     // Check for character details
-    expect(screen.getByText('172')).toBeInTheDocument();
-    expect(screen.getByText('77')).toBeInTheDocument();
-    expect(screen.getByText('blond')).toBeInTheDocument();
+    expect(screen.getByText('Height: 172')).toBeInTheDocument();
+    expect(screen.getByText('Mass: 77')).toBeInTheDocument();
+    expect(screen.getByText('Hair Color: blond')).toBeInTheDocument();
   });
 
   it('handles error state', async () => {
     vi.mocked(api.characters.getCharacter).mockRejectedValue(new Error('Failed to fetch'));
     
-    await act(async () => {
-      renderWithProviders(<CharacterDetail />);
-    });
+    renderWithProviders(<CharacterDetail />);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load character details.')).toBeInTheDocument();
@@ -75,16 +85,15 @@ describe('CharacterDetail', () => {
   it('enables editing mode', async () => {
     vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
     
-    await act(async () => {
-      renderWithProviders(<CharacterDetail />);
-    });
+    renderWithProviders(<CharacterDetail />);
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
 
+    const editButton = screen.getByRole('button', { name: /edit/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+      fireEvent.click(editButton);
     });
 
     expect(screen.getByRole('textbox', { name: /height/i })).toBeInTheDocument();
@@ -92,75 +101,73 @@ describe('CharacterDetail', () => {
   });
 
   it('saves edited character details', async () => {
-    const updatedCharacter = { ...mockCharacter, height: '175' };
     vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
-    vi.mocked(api.characters.updateCharacter).mockResolvedValue(updatedCharacter);
     
-    await act(async () => {
-      renderWithProviders(<CharacterDetail />);
-    });
+    renderWithProviders(<CharacterDetail />);
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
 
     // Enter edit mode
+    const editButton = screen.getByRole('button', { name: /edit/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+      fireEvent.click(editButton);
     });
 
     // Edit height
+    const heightInput = screen.getByRole('textbox', { name: /height/i });
     await act(async () => {
-      const heightInput = screen.getByRole('textbox', { name: /height/i });
       fireEvent.change(heightInput, { target: { value: '175' } });
     });
 
     // Save changes
+    const saveButton = screen.getByRole('button', { name: /save/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save/i }));
+      fireEvent.click(saveButton);
     });
 
-    // Wait for the save operation to complete and verify changes
-    await waitFor(() => {
-      expect(screen.getByText('175')).toBeInTheDocument();
-    }, { timeout: 5000 });
-
-    // Verify that updateCharacter was called with the correct data
-    expect(api.characters.updateCharacter).toHaveBeenCalledWith('1', expect.objectContaining({
+    // Verify that LocalStorageService.saveCharacter was called
+    expect(LocalStorageService.saveCharacter).toHaveBeenCalledWith('1', expect.objectContaining({
       height: '175'
     }));
+
+    // Verify changes are displayed
+    await waitFor(() => {
+      expect(screen.getByText('Height: 175')).toBeInTheDocument();
+    });
   });
 
   it('cancels editing without saving changes', async () => {
     vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
     
-    await act(async () => {
-      renderWithProviders(<CharacterDetail />);
-    });
+    renderWithProviders(<CharacterDetail />);
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
 
     // Enter edit mode
+    const editButton = screen.getByRole('button', { name: /edit/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+      fireEvent.click(editButton);
     });
 
     // Edit height
+    const heightInput = screen.getByRole('textbox', { name: /height/i });
     await act(async () => {
-      const heightInput = screen.getByRole('textbox', { name: /height/i });
       fireEvent.change(heightInput, { target: { value: '175' } });
     });
 
     // Cancel changes
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+      fireEvent.click(cancelButton);
     });
 
     // Verify original value is restored
     await waitFor(() => {
-      expect(screen.getByText('172')).toBeInTheDocument();
+      expect(screen.getByText('Height: 172')).toBeInTheDocument();
     });
   });
 });
