@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { theme } from './theme';
-import CharacterList from './pages/CharacterList';
+import CharacterListPage from './pages/CharacterList';
 import CharacterDetails from './pages/CharacterDetails';
 import Layout from './components/Layout';
 
@@ -19,7 +19,7 @@ function App() {
             <Route 
               path="/" 
               element={
-                <CharacterList />
+                <CharacterListPage />
               } 
             />
             <Route 
