@@ -1,16 +1,21 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter as Router } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import CharacterList from './CharacterList'
+import CharacterList from '../components/CharacterList'
 import '@testing-library/jest-dom'
-import { fetchCharacters } from '../services/api'
+import api, { CharacterResponse } from '../services/api'
 
-vi.mock('../services/api')
-const mockFetchCharacters = fetchCharacters as ReturnType<typeof vi.fn>
+vi.mock('../services/api', () => ({
+  default: {
+    characters: {
+      getCharacters: vi.fn()
+    }
+  }
+}))
 
-const mockCharacters = {
-  count: 2,
-  next: null,
+const mockCharacters: CharacterResponse = {
+  count: 82,
+  next: 'https://swapi.dev/api/people/?page=2',
   previous: null,
   results: [
     {
@@ -22,7 +27,8 @@ const mockCharacters = {
       eye_color: 'blue',
       birth_year: '19BBY',
       gender: 'male',
-      url: 'http://swapi.dev/api/people/1/',
+      homeworld: 'https://swapi.dev/api/planets/1/',
+      url: 'https://swapi.dev/api/people/1/'
     },
     {
       name: 'Darth Vader',
@@ -33,78 +39,72 @@ const mockCharacters = {
       eye_color: 'yellow',
       birth_year: '41.9BBY',
       gender: 'male',
-      url: 'http://swapi.dev/api/people/4/',
-    },
-  ],
+      homeworld: 'https://swapi.dev/api/planets/1/',
+      url: 'https://swapi.dev/api/people/4/'
+    }
+  ]
+}
+
+const renderWithRouter = (component: JSX.Element) => {
+  return render(<Router>{component}</Router>)
 }
 
 describe('CharacterList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockFetchCharacters.mockResolvedValue(mockCharacters)
   })
 
-  it('renders character list and handles search', async () => {
-    render(
-      <BrowserRouter>
-        <CharacterList />
-      </BrowserRouter>
-    )
-
-    // Check if loading state is shown
+  it('renders loading state initially', () => {
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
+    renderWithRouter(<CharacterList />)
     expect(screen.getByRole('progressbar')).toBeInTheDocument()
+  })
 
-    // Wait for characters to load
+  it('renders characters after loading', async () => {
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
+    renderWithRouter(<CharacterList />)
+
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument()
+      expect(screen.getByText('Darth Vader')).toBeInTheDocument()
     })
+  })
 
-    // Check if both characters are rendered
-    expect(screen.getByText('Luke Skywalker')).toBeInTheDocument()
-    expect(screen.getByText('Darth Vader')).toBeInTheDocument()
+  it('handles search input', async () => {
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
+    renderWithRouter(<CharacterList />)
 
-    // Test search functionality
     const searchInput = screen.getByLabelText('Search Characters')
     fireEvent.change(searchInput, { target: { value: 'Luke' } })
 
-    // Verify that the API was called with search parameter
     await waitFor(() => {
-      expect(mockFetchCharacters).toHaveBeenCalledWith(1, 'Luke')
-    })
-  })
-
-  it('handles API error gracefully', async () => {
-    mockFetchCharacters.mockRejectedValue(new Error('API Error'))
-
-    render(
-      <BrowserRouter>
-        <CharacterList />
-      </BrowserRouter>
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to load characters.')).toBeInTheDocument()
+      expect(api.characters.getCharacters).toHaveBeenCalledWith(1, 'Luke')
     })
   })
 
   it('handles pagination', async () => {
-    render(
-      <BrowserRouter>
-        <CharacterList />
-      </BrowserRouter>
-    )
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters)
+    renderWithRouter(<CharacterList />)
 
     await waitFor(() => {
-      expect(screen.getByText('Luke Skywalker')).toBeInTheDocument()
+      const pagination = screen.getByRole('navigation')
+      expect(pagination).toBeInTheDocument()
     })
 
-    // Find and click the next page button
-    const nextPageButton = screen.getByRole('button', { name: /go to page 2/i })
-    fireEvent.click(nextPageButton)
+    const page2Button = screen.getByRole('button', { name: '2' })
+    fireEvent.click(page2Button)
 
-    // Verify that the API was called with page 2
     await waitFor(() => {
-      expect(mockFetchCharacters).toHaveBeenCalledWith(2, '')
+      expect(api.characters.getCharacters).toHaveBeenCalledWith(2, '')
+    })
+  })
+
+  it('handles error state', async () => {
+    vi.mocked(api.characters.getCharacters).mockRejectedValue(new Error('Failed to fetch'))
+    renderWithRouter(<CharacterList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load characters. Please try again later.')).toBeInTheDocument()
     })
   })
 }) 

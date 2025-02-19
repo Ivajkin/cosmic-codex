@@ -1,14 +1,21 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import CharacterList from '../components/CharacterList';
-import * as api from '../services/api';
+import api, { CharacterResponse } from '../services/api';
 
-// Mock the api module
-vi.mock('../services/api');
+vi.mock('../services/api', () => ({
+  default: {
+    characters: {
+      getCharacters: vi.fn()
+    }
+  }
+}));
 
-const mockCharacters = {
+const mockCharacters: CharacterResponse = {
   count: 82,
+  next: 'https://swapi.dev/api/people/?page=2',
+  previous: null,
   results: [
     {
       name: 'Luke Skywalker',
@@ -37,8 +44,8 @@ const mockCharacters = {
   ]
 };
 
-const renderWithRouter = (component: React.ReactNode) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
+const renderWithRouter = (component: JSX.Element) => {
+  return render(<Router>{component}</Router>);
 };
 
 describe('CharacterList', () => {
@@ -47,13 +54,13 @@ describe('CharacterList', () => {
   });
 
   it('renders loading state initially', () => {
-    vi.mocked(api.fetchCharacters).mockResolvedValue(mockCharacters);
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters);
     renderWithRouter(<CharacterList />);
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders characters after loading', async () => {
-    vi.mocked(api.fetchCharacters).mockResolvedValue(mockCharacters);
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters);
     renderWithRouter(<CharacterList />);
 
     await waitFor(() => {
@@ -63,19 +70,19 @@ describe('CharacterList', () => {
   });
 
   it('handles search input', async () => {
-    vi.mocked(api.fetchCharacters).mockResolvedValue(mockCharacters);
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters);
     renderWithRouter(<CharacterList />);
 
     const searchInput = screen.getByLabelText('Search Characters');
     fireEvent.change(searchInput, { target: { value: 'Luke' } });
 
     await waitFor(() => {
-      expect(api.fetchCharacters).toHaveBeenCalledWith(1, 'Luke');
+      expect(api.characters.getCharacters).toHaveBeenCalledWith(1, 'Luke');
     });
   });
 
   it('handles pagination', async () => {
-    vi.mocked(api.fetchCharacters).mockResolvedValue(mockCharacters);
+    vi.mocked(api.characters.getCharacters).mockResolvedValue(mockCharacters);
     renderWithRouter(<CharacterList />);
 
     await waitFor(() => {
@@ -87,12 +94,12 @@ describe('CharacterList', () => {
     fireEvent.click(page2Button);
 
     await waitFor(() => {
-      expect(api.fetchCharacters).toHaveBeenCalledWith(2, '');
+      expect(api.characters.getCharacters).toHaveBeenCalledWith(2, '');
     });
   });
 
   it('handles error state', async () => {
-    vi.mocked(api.fetchCharacters).mockRejectedValue(new Error('Failed to fetch'));
+    vi.mocked(api.characters.getCharacters).mockRejectedValue(new Error('Failed to fetch'));
     renderWithRouter(<CharacterList />);
 
     await waitFor(() => {

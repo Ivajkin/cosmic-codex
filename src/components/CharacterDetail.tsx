@@ -11,39 +11,32 @@ import {
   IconButton
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { fetchCharacterById } from '../services/api';
-import { Character } from '../types/character';
+import api, { Character } from '../services/api';
 
 const CharacterDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [character, setCharacter] = useState<Character | null>(null);
   const [editedChar, setEditedChar] = useState<Character | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const loadCharacter = async () => {
+    const fetchCharacter = async () => {
       if (!id) return;
-      setLoading(true);
       try {
-        // Check localStorage first
-        const localData = localStorage.getItem(`character_${id}`);
-        if (localData) {
-          setCharacter(JSON.parse(localData));
-        } else {
-          const data = await fetchCharacterById(id);
-          setCharacter(data);
-        }
-      } catch (err) {
+        setLoading(true);
+        const data = await api.characters.getCharacter(id);
+        setCharacter(data);
+      } catch (error) {
         setError('Failed to load character details.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadCharacter();
+    fetchCharacter();
   }, [id]);
 
   const handleEditToggle = () => {

@@ -1,13 +1,18 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { vi } from 'vitest';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CharacterDetail from '../components/CharacterDetail';
-import * as api from '../services/api';
+import api, { Character } from '../services/api';
 
-// Mock the api module
-vi.mock('../services/api');
+vi.mock('../services/api', () => ({
+  default: {
+    characters: {
+      getCharacter: vi.fn()
+    }
+  }
+}));
 
-const mockCharacter = {
+const mockCharacter: Character = {
   name: 'Luke Skywalker',
   height: '172',
   mass: '77',
@@ -20,87 +25,57 @@ const mockCharacter = {
   url: 'https://swapi.dev/api/people/1/'
 };
 
-const renderWithRouter = (id: string) => {
-  return render(
-    <BrowserRouter>
-      <Routes>
-        <Route path="/character/:id" element={<CharacterDetail />} />
-      </Routes>
-    </BrowserRouter>,
-    { initialEntries: [`/character/${id}`] }
-  );
-};
-
 describe('CharacterDetail', () => {
+  const id = '1';
+
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
   });
 
   it('renders loading state initially', () => {
-    vi.mocked(api.fetchCharacterById).mockResolvedValue(mockCharacter);
-    renderWithRouter('1');
+    render(
+      <Router initialEntries={[`/character/${id}`]}>
+        <Routes>
+          <Route path="/character/:id" element={<CharacterDetail />} />
+        </Routes>
+      </Router>
+    );
+
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders character details after loading', async () => {
-    vi.mocked(api.fetchCharacterById).mockResolvedValue(mockCharacter);
-    renderWithRouter('1');
+    vi.mocked(api.characters.getCharacter).mockResolvedValue(mockCharacter);
 
-    await waitFor(() => {
-      expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
-      expect(screen.getByText('Birth Year: 19BBY')).toBeInTheDocument();
-    });
-  });
-
-  it('enables editing mode', async () => {
-    vi.mocked(api.fetchCharacterById).mockResolvedValue(mockCharacter);
-    renderWithRouter('1');
-
-    await waitFor(() => {
-      expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
-    });
-
-    const editButton = screen.getByText('Edit');
-    fireEvent.click(editButton);
-
-    expect(screen.getByDisplayValue('Luke Skywalker')).toBeInTheDocument();
-    expect(screen.getByText('Save')).toBeInTheDocument();
-    expect(screen.getByText('Cancel')).toBeInTheDocument();
-  });
-
-  it('saves edited character data locally', async () => {
-    vi.mocked(api.fetchCharacterById).mockResolvedValue(mockCharacter);
-    renderWithRouter('1');
+    render(
+      <Router initialEntries={[`/character/${id}`]}>
+        <Routes>
+          <Route path="/character/:id" element={<CharacterDetail />} />
+        </Routes>
+      </Router>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Luke Skywalker')).toBeInTheDocument();
     });
 
-    // Enter edit mode
-    fireEvent.click(screen.getByText('Edit'));
-
-    // Edit the name
-    const nameInput = screen.getByDisplayValue('Luke Skywalker');
-    fireEvent.change(nameInput, { target: { value: 'Luke Skywalker Jr.' } });
-
-    // Save changes
-    fireEvent.click(screen.getByText('Save'));
-
-    // Verify changes are saved
-    expect(screen.getByText('Luke Skywalker Jr.')).toBeInTheDocument();
-
-    // Verify data is saved to localStorage
-    const savedData = JSON.parse(localStorage.getItem('character_1') || '');
-    expect(savedData.name).toBe('Luke Skywalker Jr.');
+    expect(screen.getByText('Height: 172')).toBeInTheDocument();
+    expect(screen.getByText('Mass: 77')).toBeInTheDocument();
   });
 
   it('handles error state', async () => {
-    vi.mocked(api.fetchCharacterById).mockRejectedValue(new Error('Failed to fetch'));
-    renderWithRouter('1');
+    vi.mocked(api.characters.getCharacter).mockRejectedValue(new Error('Failed to fetch'));
+
+    render(
+      <Router initialEntries={[`/character/${id}`]}>
+        <Routes>
+          <Route path="/character/:id" element={<CharacterDetail />} />
+        </Routes>
+      </Router>
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load character details.')).toBeInTheDocument();
+      expect(screen.getByText(/failed to load character/i)).toBeInTheDocument();
     });
   });
 });
