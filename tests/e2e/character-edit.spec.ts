@@ -106,18 +106,26 @@ test.describe('Character Editing', () => {
   });
 
   test('should handle network errors during save', async ({ page }) => {
+    // First, navigate and wait for initial data
     await page.goto('/character/1');
     await waitForCharacterDetails(page);
 
-    // Mock API error for subsequent requests
-    await page.route('**/api/people/1', async (route) => {
-      await route.fulfill({ status: 500 });
-    });
-
+    // Click edit button
     await page.locator('button[aria-label="Edit"]').click();
 
     // Make changes
     await page.locator('input[aria-label="Height"]').fill('175');
+
+    // Mock API error for the save request
+    await page.route('**/api/people/1', async (route) => {
+      const method = route.request().method();
+      if (method === 'PUT') {
+        await route.fulfill({ status: 500 });
+      } else {
+        // Let other requests (like GET) pass through
+        await route.continue();
+      }
+    });
 
     // Try to save
     await page.locator('button[aria-label="Save"]').click();
