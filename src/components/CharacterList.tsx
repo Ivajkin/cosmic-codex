@@ -13,7 +13,7 @@ import {
   Container,
   Paper
 } from '@mui/material';
-import { fetchCharacters } from '../services/api';
+import { getCharacters } from '../services/api';
 import { Character } from '../types/character';
 
 const CharacterList = () => {
@@ -30,7 +30,7 @@ const CharacterList = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchCharacters(page, search);
+        const data = await getCharacters(page, search);
         setCharacters(data.results);
         setTotalPages(Math.ceil(data.count / 10)); // SWAPI returns 10 items per page
       } catch (err) {
@@ -65,52 +65,53 @@ const CharacterList = () => {
           fullWidth
           margin="normal"
           variant="outlined"
-      />
+        />
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-          <CircularProgress />
-        </div>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
-      ) : (
-        <>
-          <Grid container spacing={2} style={{ marginTop: '1rem' }}>
-            {characters.map((char) => (
-              <Grid item xs={12} sm={6} md={4} key={char.url}>
-                <Card 
-                  onClick={() => handleCharacterClick(char)}
-                  sx={{ 
-                    cursor: 'pointer',
-                    '&:hover': {
-                      boxShadow: 6,
-                      transform: 'translateY(-2px)',
-                      transition: 'all 0.2s ease-in-out'
-                    }
-                  }}
-                >
-                  <CardContent>
-                    <Typography variant="h6">{char.name}</Typography>
-                    <Typography color="textSecondary">Birth Year: {char.birth_year}</Typography>
-                    <Typography color="textSecondary">Gender: {char.gender}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_: React.ChangeEvent<unknown>, value: number) => setPage(value)}
-              color="primary"
-              size="large"
-            />
-          </div>
-        </>
-      )}
-    </div>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error">{error}</Typography>
+        ) : (
+          <>
+            <Grid container spacing={2} style={{ marginTop: '1rem' }}>
+              {characters.map((char) => (
+                <Grid item xs={12} sm={6} md={4} key={char.url}>
+                  <Card 
+                    onClick={() => handleCharacterClick(char)}
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': {
+                        boxShadow: 6,
+                        transform: 'translateY(-2px)',
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="h6">{char.name}</Typography>
+                      <Typography color="textSecondary">Birth Year: {char.birth_year}</Typography>
+                      <Typography color="textSecondary">Gender: {char.gender}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_: React.ChangeEvent<unknown>, value: number) => setPage(value)}
+                color="primary"
+                size="large"
+              />
+            </Box>
+          </>
+        )}
+      </Paper>
+    </Container>
   );
 };
 
