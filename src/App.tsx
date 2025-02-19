@@ -5,15 +5,29 @@ import CharacterList from './pages/CharacterList';
 import CharacterDetails from './pages/CharacterDetails';
 import Layout from './components/Layout';
 
+console.log('App.tsx: Starting to render App component');
+
 function App() {
+  console.log('App.tsx: Inside App component render');
+  
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<CharacterList />} />
-            <Route path="/character/:id" element={<CharacterDetails />} />
+            <Route 
+              path="/" 
+              element={
+                <CharacterList />
+              } 
+            />
+            <Route 
+              path="/character/:id" 
+              element={
+                <CharacterDetails />
+              } 
+            />
           </Routes>
         </Layout>
       </Router>

@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Card,
-  CardContent,
+  Container,
+  Paper,
   Typography,
-  TextField,
   Button,
-  Grid,
+  TextField,
+  Box,
   CircularProgress,
-  Alert,
+  Grid,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { getCharacter, saveCharacterLocally, getLocalCharacter, type Character } from '../services/api';
+import api, { type Character } from '../services/api';
 
-const CharacterDetails = () => {
+const STORAGE_KEY = 'characterEdits';
+
+export default function CharacterDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [character, setCharacter] = useState<Character | null>(null);
-  const [editedCharacter, setEditedCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCharacter, setEditedCharacter] = useState<Partial<Character>>({});
 
   useEffect(() => {
     const fetchCharacter = async () => {
@@ -29,21 +29,17 @@ const CharacterDetails = () => {
       
       try {
         setLoading(true);
-        setError(null);
+        const data = await api.characters.getCharacter(id);
         
-        // Check for locally saved data first
-        const localData = getLocalCharacter(id);
-        if (localData) {
-          setCharacter(localData);
-          setEditedCharacter(localData);
-        } else {
-          const data = await getCharacter(id);
-          setCharacter(data);
-          setEditedCharacter(data);
-        }
+        // Check for local edits
+        const storedCharacter = api.localStorage.getCharacter(id);
+        
+        setCharacter({
+          ...data,
+          ...storedCharacter,
+        });
       } catch (err) {
-        setError('Failed to load character data');
-        console.error('Error fetching character:', err);
+        setError('Failed to load character details');
       } finally {
         setLoading(false);
       }
@@ -52,169 +48,110 @@ const CharacterDetails = () => {
     fetchCharacter();
   }, [id]);
 
-  const handleInputChange = (field: keyof Character) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (editedCharacter) {
-      setEditedCharacter({
-        ...editedCharacter,
-        [field]: event.target.value,
-      });
-    }
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedCharacter(character || {});
   };
 
   const handleSave = () => {
-    if (!id || !editedCharacter) return;
-    
-    try {
-      saveCharacterLocally(id, editedCharacter);
-      setCharacter(editedCharacter);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
-      setError('Failed to save changes locally');
-      console.error('Error saving character:', err);
-    }
+    if (!character || !id) return;
+
+    const updatedCharacter = {
+      ...character,
+      ...editedCharacter,
+    };
+
+    // Save to local storage
+    api.localStorage.saveCharacter(id, updatedCharacter);
+
+    setCharacter(updatedCharacter);
+    setIsEditing(false);
   };
 
-  const handleBack = () => {
-    navigate('/');
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedCharacter({});
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error || !editedCharacter) {
+  if (error) {
     return (
-      <Box mt={4}>
-        <Alert severity="error">{error || 'Character not found'}</Alert>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={handleBack}
-          sx={{ mt: 2 }}
-        >
-          Back to List
-        </Button>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Typography color="error" data-testid="error-message">{error}</Typography>
+      </Box>
+    );
+  }
+
+  if (!character) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Typography>Character not found</Typography>
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={handleBack}
-        sx={{ mb: 4 }}
-      >
-        Back to List
-      </Button>
-
-      {saveSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Changes saved successfully!
-        </Alert>
-      )}
-
-      <Card>
-        <CardContent>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {editedCharacter.name}
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Paper sx={{ p: 4 }} data-testid="character-details">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h4" data-testid="character-name">
+            {character.name}
           </Typography>
-
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Name"
-                value={editedCharacter.name}
-                onChange={handleInputChange('name')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Birth Year"
-                value={editedCharacter.birth_year}
-                onChange={handleInputChange('birth_year')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Height"
-                value={editedCharacter.height}
-                onChange={handleInputChange('height')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Mass"
-                value={editedCharacter.mass}
-                onChange={handleInputChange('mass')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Hair Color"
-                value={editedCharacter.hair_color}
-                onChange={handleInputChange('hair_color')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Skin Color"
-                value={editedCharacter.skin_color}
-                onChange={handleInputChange('skin_color')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Eye Color"
-                value={editedCharacter.eye_color}
-                onChange={handleInputChange('eye_color')}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Gender"
-                value={editedCharacter.gender}
-                onChange={handleInputChange('gender')}
-                margin="normal"
-              />
-            </Grid>
-          </Grid>
-
-          <Box display="flex" justifyContent="flex-end" mt={4}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={JSON.stringify(character) === JSON.stringify(editedCharacter)}
-            >
-              Save Changes
-            </Button>
+          <Box>
+            {!isEditing ? (
+              <Button variant="contained" onClick={handleEdit}>
+                Edit
+              </Button>
+            ) : (
+              <Box>
+                <Button variant="contained" onClick={handleSave} sx={{ mr: 1 }}>
+                  Save
+                </Button>
+                <Button variant="outlined" onClick={handleCancel}>
+                  Cancel
+                </Button>
+              </Box>
+            )}
           </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
-};
+        </Box>
 
-export default CharacterDetails; 
+        <Grid container spacing={3}>
+          {[
+            { label: 'Height', key: 'height' },
+            { label: 'Mass', key: 'mass' },
+            { label: 'Hair Color', key: 'hair_color' },
+            { label: 'Skin Color', key: 'skin_color' },
+            { label: 'Eye Color', key: 'eye_color' },
+            { label: 'Birth Year', key: 'birth_year' },
+            { label: 'Gender', key: 'gender' },
+          ].map(({ label, key }) => (
+            <Grid item xs={12} sm={6} key={key}>
+              {isEditing ? (
+                <TextField
+                  fullWidth
+                  label={label}
+                  value={editedCharacter[key as keyof Character] || character[key as keyof Character]}
+                  onChange={(e) => setEditedCharacter({
+                    ...editedCharacter,
+                    [key]: e.target.value,
+                  })}
+                />
+              ) : (
+                <Typography>
+                  <strong>{label}:</strong> {character[key as keyof Character]}
+                </Typography>
+              )}
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+    </Container>
+  );
+} 

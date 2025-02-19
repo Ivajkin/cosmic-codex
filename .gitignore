@@ -56,3 +56,5 @@ lerna-debug.log*
 .stylelintcache
 
 # Temporary files
+playwright-report
+test-results

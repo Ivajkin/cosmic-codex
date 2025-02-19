@@ -18,4 +18,4 @@ Test task for React engineer
 + Тесты
 
 + each file check - is production ready?
-+ deploy temporary to vercel or my aws on a cheapest machine
++ deploy temporary to vercel

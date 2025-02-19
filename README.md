@@ -1,4 +1,4 @@
-# Star Wars Character Explorer
+# Cosmos Codex - Star Wars Character Explorer
 
 A React application that allows users to explore Star Wars characters using the SWAPI (Star Wars API). Built with React, TypeScript, and Material-UI.
 
@@ -32,8 +32,8 @@ A React application that allows users to explore Star Wars characters using the 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/star-wars-explorer.git
-   cd star-wars-explorer
+   git clone https://github.com/yourusername/cosmos-codex.git
+   cd cosmos-codex
    ```
 
 2. Install dependencies:
