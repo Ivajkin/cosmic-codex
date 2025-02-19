@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   TextField, 
@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { getCharacters } from '../services/api';
 import { Character } from '../types/character';
+import { debounce } from 'lodash';
 
 const CharacterList = () => {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -24,24 +25,49 @@ const CharacterList = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadCharacters = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getCharacters(page, search);
-        setCharacters(data.results);
-        setTotalPages(Math.ceil(data.count / 10)); // SWAPI returns 10 items per page
-      } catch (err) {
-        setError('Failed to load characters. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadCharacters = useCallback(async (searchTerm: string, pageNum: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getCharacters(pageNum, searchTerm);
+      setCharacters(data.results);
+      setTotalPages(Math.ceil(data.count / 10));
+    } catch (err) {
+      setError('Failed to load characters. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    const debounceTimer = setTimeout(loadCharacters, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [page, search]);
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((searchTerm: string) => {
+      setPage(1); // Reset to first page on search
+      loadCharacters(searchTerm, 1);
+    }, 300),
+    [loadCharacters]
+  );
+
+  // Effect for search changes
+  useEffect(() => {
+    debouncedSearch(search);
+    // Cleanup
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [search, debouncedSearch]);
+
+  // Effect for page changes
+  useEffect(() => {
+    if (page > 1) { // Don't trigger on initial render or search changes
+      loadCharacters(search, page);
+    }
+  }, [page, search, loadCharacters]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearch(value);
+  };
 
   const handleCharacterClick = (character: Character) => {
     const id = character.url.split('/')[5];
@@ -60,10 +86,11 @@ const CharacterList = () => {
         <TextField
           label="Search Characters"
           value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
           fullWidth
           margin="normal"
           variant="outlined"
+          autoComplete="off"
         />
 
         {loading ? (
